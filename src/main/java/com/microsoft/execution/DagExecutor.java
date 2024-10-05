@@ -29,7 +29,7 @@ public class DagExecutor implements IDagExecutor {
         ExecutionDag dag = dagParser.parseDag(request.dagXml());
 
         // Submits the DAG for execution
-        return CompletableFuture.supplyAsync(() -> { // TODO check thread pools
+        return CompletableFuture.supplyAsync(() -> {
             try {
                 return executeDag(dag);
             } catch (InterruptedException ex) {
@@ -58,9 +58,9 @@ public class DagExecutor implements IDagExecutor {
         int nodesScheduledForExecution = 0;
 
         while (nodesScheduledForExecution < dagSize) {
-            logger.info("Blocking execution for DAG " + dag.hashCode());
+            logger.info("Blocking execution for DAG {}", dag.hashCode());
             int node = q.take();
-            logger.info("Taking item for DAG " + dag.hashCode());
+            logger.info("Taking item for DAG {}", dag.hashCode());
 
             if(node < 0) {
                 // Poison pill received, stop executing

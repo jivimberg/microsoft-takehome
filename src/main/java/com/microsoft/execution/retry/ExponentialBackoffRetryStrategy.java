@@ -1,7 +1,5 @@
 package com.microsoft.execution.retry;
 
-import java.util.concurrent.TimeUnit;
-
 public record ExponentialBackoffRetryStrategy(int maxRetries, long baseDelayInMillis, float multiplier) implements RetryStrategy {
 
     public ExponentialBackoffRetryStrategy {

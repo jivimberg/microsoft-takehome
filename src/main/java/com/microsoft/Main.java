@@ -2,7 +2,6 @@ package com.microsoft;
 
 import com.microsoft.execution.*;
 import com.microsoft.execution.retry.NoRetryStrategy;
-import com.microsoft.execution.retry.TimedRetryStrategy;
 import com.microsoft.parser.DagParser;
 import com.microsoft.parser.IDagParser;
 
