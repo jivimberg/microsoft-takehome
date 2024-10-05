@@ -5,12 +5,9 @@ import com.microsoft.parser.DagParser;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashSet;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.List;
-import java.util.Set;
 import java.util.stream.IntStream;
 
 import static org.awaitility.Awaitility.await;
@@ -22,30 +19,30 @@ public class EndToEndTest {
     public void testDagExecution() throws ExecutionException, InterruptedException {
         // Create a complex DAG XML
         String simpleDagXml = """
-            <DAG>
-                <Nodes>
-                    <Node Id="0">
-                        <dependencies>
-                            <Node Id="1"/>
-                            <Node Id="2"/>
-                        </dependencies>
-                    </Node>
-                    <Node Id="1">
-                        <dependencies>
-                            <Node Id="3"/>
-                        </dependencies>
-                    </Node>
-                    <Node Id="2">
-                        <dependencies>
-                            <Node Id="3"/>
-                        </dependencies>
-                    </Node>
-                    <Node Id="3">
-                        <dependencies/>
-                    </Node>
-                </Nodes>
-            </DAG>
-        """;
+                    <DAG>
+                        <Nodes>
+                            <Node Id="0">
+                                <dependencies>
+                                    <Node Id="1"/>
+                                    <Node Id="2"/>
+                                </dependencies>
+                            </Node>
+                            <Node Id="1">
+                                <dependencies>
+                                    <Node Id="3"/>
+                                </dependencies>
+                            </Node>
+                            <Node Id="2">
+                                <dependencies>
+                                    <Node Id="3"/>
+                                </dependencies>
+                            </Node>
+                            <Node Id="3">
+                                <dependencies/>
+                            </Node>
+                        </Nodes>
+                    </DAG>
+                """;
 
         // Configure the DagNodeExecutor with failure rate 0
         DagNodeExecutor dagNodeExecutor = new DagNodeExecutor(4, 0.0f, NoRetryStrategy.INSTANCE);
@@ -73,7 +70,7 @@ public class EndToEndTest {
 
     @RepeatedTest(50)
     public void testMultipleLargeDAGsExecution() throws ExecutionException, InterruptedException {
-        testExecution(20, 50, 2, 4, 0.0f, NoRetryStrategy.INSTANCE);
+        testExecution(20, 200, 10, 4, 0.0f, NoRetryStrategy.INSTANCE);
     }
 
     @RepeatedTest(50)
@@ -121,12 +118,11 @@ public class EndToEndTest {
 
     public void testExecution(int numDags, int numNodes, int maxEdges, int numberOfEngines, float failureRate, RetryStrategy retryStrategy) throws ExecutionException, InterruptedException {
         // Generate N random DAG XMLs
-        DagParser dagParser = new DagParser();
         List<String> dagXmls = IntStream.range(0, numDags)
-                .mapToObj(_ -> generateValidRandomDAGXml(dagParser, numNodes, maxEdges))
+                .mapToObj(_ -> generateRandomDAGXml(numNodes, maxEdges))
                 .toList();
 
-        // Configure the DagNodeExecutor with failure rate 0
+        DagParser dagParser = new DagParser();
         DagNodeExecutor dagNodeExecutor = new DagNodeExecutor(numberOfEngines, failureRate, retryStrategy);
         IDagExecutor dagExecutor = new DagExecutor(dagParser, dagNodeExecutor);
 
@@ -143,7 +139,7 @@ public class EndToEndTest {
             return true;
         });
 
-        if(failureRate == 0 || retryStrategy instanceof InfiteRetryStrategy) {
+        if (failureRate == 0 || retryStrategy instanceof InfiteRetryStrategy) {
             // Ensure all DAGs have completed successfully
             for (CompletableFuture<DagResponse> future : futures) {
                 DagResponse response = future.get();
@@ -151,23 +147,11 @@ public class EndToEndTest {
             }
         }
 
-        if(failureRate == 1) {
+        if (failureRate == 1) {
             // Ensure all DAGs have completed successfully
             for (CompletableFuture<DagResponse> future : futures) {
                 DagResponse response = future.get();
                 assertTrue(response.hasFailed());
-            }
-        }
-    }
-
-    private static String generateValidRandomDAGXml(DagParser dagParser, int numNodes, int maxEdges) {
-        while (true) {
-            String randomDagXml = generateRandomDAGXml(numNodes, maxEdges);
-            try {
-                dagParser.parseDag(randomDagXml); // If invalid parsing will throw
-                return randomDagXml;
-            } catch (Exception e) {
-                System.out.println("Invalid DAG generated, retrying...");
             }
         }
     }
@@ -177,6 +161,8 @@ public class EndToEndTest {
         xmlBuilder.append("<DAG>\n  <Nodes>\n");
 
         Random random = new Random();
+        Map<Integer, Set<Integer>> reachabilityMap = new HashMap<>();
+
         for (int i = 0; i < numNodes; i++) {
             xmlBuilder.append("    <Node Id=\"").append(i).append("\">\n");
             xmlBuilder.append("      <dependencies>\n");
@@ -185,8 +171,10 @@ public class EndToEndTest {
             Set<Integer> dependencies = new HashSet<>();
             for (int j = 0; j < edges; j++) {
                 int targetIndex = random.nextInt(numNodes);
-                if (targetIndex != i) {
+                boolean createsCycle = reachabilityMap.containsKey(targetIndex) && reachabilityMap.get(targetIndex).contains(i);
+                if (targetIndex != i && !createsCycle) {
                     dependencies.add(targetIndex);
+                    updateReachabilityMap(reachabilityMap, i, targetIndex);
                 }
             }
 
@@ -202,4 +190,15 @@ public class EndToEndTest {
         return xmlBuilder.toString();
     }
 
+    private static void updateReachabilityMap(Map<Integer, Set<Integer>> reachabilityMap, int source, int target) {
+        Set<Integer> reachableFromSource = reachabilityMap.computeIfAbsent(source, _ -> new HashSet<>());
+        // Add the target to the reachability set of i
+        reachableFromSource.add(target);
+        // Add all the nodes reachable from the target to the reachability set of i
+        reachableFromSource.addAll(reachabilityMap.getOrDefault(target, new HashSet<>()));
+
+        reachabilityMap.entrySet().stream()
+                .filter(entry -> entry.getValue().contains(source))
+                .forEach(entry -> entry.getValue().addAll(reachableFromSource));
+    }
 }
