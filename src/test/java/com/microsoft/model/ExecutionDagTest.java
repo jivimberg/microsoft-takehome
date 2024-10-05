@@ -10,7 +10,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 
-public class DagTest {
+public class ExecutionDagTest {
 
     @Test
     public void testGetInDegreeValidDag() {
@@ -18,7 +18,7 @@ public class DagTest {
         NodeWithDependencies node1 = new NodeWithDependencies(1, Set.of());
         NodeWithDependencies node0 = new NodeWithDependencies(0, Set.of(node1, node2));
 
-        Dag dag = Dag.create(Set.of(node0, node1, node2));
+        ExecutionDag dag = ExecutionDag.create(Set.of(node0, node1, node2));
         Map<Integer, Integer> inDegree = dag.getInDegree();
 
         assertEquals(2, inDegree.get(0));
@@ -33,7 +33,7 @@ public class DagTest {
         NodeWithDependencies node1 = new NodeWithDependencies(1, Set.of());
         NodeWithDependencies node0 = new NodeWithDependencies(0, Set.of(node1));
 
-        Dag dag = Dag.create(Set.of(node0, node1, node2, node3));
+        ExecutionDag dag = ExecutionDag.create(Set.of(node0, node1, node2, node3));
         Map<Integer, Integer> inDegree = dag.getInDegree();
 
         assertEquals(1, inDegree.get(0));
@@ -46,7 +46,7 @@ public class DagTest {
     public void testGetInDegreeSingleNode() {
         NodeWithDependencies node0 = new NodeWithDependencies(0, Set.of());
 
-        Dag dag = Dag.create(Set.of(node0));
+        ExecutionDag dag = ExecutionDag.create(Set.of(node0));
         Map<Integer, Integer> inDegree = dag.getInDegree();
 
         assertEquals(0, inDegree.get(0));
@@ -54,7 +54,7 @@ public class DagTest {
 
     @Test
     public void testGetInDegreeEmptyDag() {
-        Dag dag = Dag.create(Set.of());
+        ExecutionDag dag = ExecutionDag.create(Set.of());
         Map<Integer, Integer> inDegree = dag.getInDegree();
 
         assertTrue(inDegree.isEmpty());
@@ -67,7 +67,7 @@ public class DagTest {
         NodeWithDependencies node1 = new NodeWithDependencies(1, Set.of());
         NodeWithDependencies node0 = new NodeWithDependencies(0, Set.of(node1, node2, node3));
 
-        Dag dag = Dag.create(Set.of(node0, node1, node2, node3));
+        ExecutionDag dag = ExecutionDag.create(Set.of(node0, node1, node2, node3));
         Map<Integer, Integer> inDegree = dag.getInDegree();
 
         assertEquals(3, inDegree.get(0));
@@ -82,7 +82,7 @@ public class DagTest {
         NodeWithDependencies node1 = new NodeWithDependencies(1, Set.of());
         NodeWithDependencies node0 = new NodeWithDependencies(0, Set.of());
 
-        Dag dag = Dag.create(Set.of(node0, node1, node2));
+        ExecutionDag dag = ExecutionDag.create(Set.of(node0, node1, node2));
         Map<Integer, Integer> inDegree = dag.getInDegree();
 
         assertEquals(0, inDegree.get(0));
@@ -97,7 +97,7 @@ public class DagTest {
         NodeWithDependencies node1 = new NodeWithDependencies(2, Set.of(node3));
         NodeWithDependencies node0 = new NodeWithDependencies(3, Set.of(node1, node2));
 
-        Dag dag = Dag.create(Set.of(node0, node1, node2, node3));
+        ExecutionDag dag = ExecutionDag.create(Set.of(node0, node1, node2, node3));
         Map<Integer, Integer> inDegree = dag.getInDegree();
 
         assertEquals(0, inDegree.get(0));
@@ -112,7 +112,7 @@ public class DagTest {
         NodeWithDependencies node0 = new NodeWithDependencies(0, Set.of(node1));
         node1.setDependencies(Set.of(node0)); // Create a cycle
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> Dag.create(Set.of(node0, node1)));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> ExecutionDag.create(Set.of(node0, node1)));
         assertEquals("The graph contains a cycle", exception.getMessage());
     }
 
@@ -123,7 +123,7 @@ public class DagTest {
         NodeWithDependencies node1 = new NodeWithDependencies(1, Set.of());
         NodeWithDependencies node0 = new NodeWithDependencies(0, Set.of(node1));
 
-        Dag dag = Dag.create(Set.of(node0, node1, node2, node3));
+        ExecutionDag dag = ExecutionDag.create(Set.of(node0, node1, node2, node3));
         Map<Integer, Integer> inDegree = dag.getInDegree();
 
         assertEquals(1, inDegree.get(0));
@@ -134,7 +134,7 @@ public class DagTest {
 
     @Test
     public void testEmptyDag() {
-        Dag dag = Dag.create(Set.of());
+        ExecutionDag dag = ExecutionDag.create(Set.of());
         Map<Integer, Integer> inDegree = dag.getInDegree();
 
         assertTrue(inDegree.isEmpty());
@@ -144,7 +144,7 @@ public class DagTest {
     public void testSingleNodeNoDependencies() {
         NodeWithDependencies node0 = new NodeWithDependencies(0, Set.of());
 
-        Dag dag = Dag.create(Set.of(node0));
+        ExecutionDag dag = ExecutionDag.create(Set.of(node0));
         Map<Integer, Integer> inDegree = dag.getInDegree();
 
         assertEquals(0, inDegree.get(0));
@@ -155,7 +155,7 @@ public class DagTest {
         NodeWithDependencies node0 = new NodeWithDependencies(0, Set.of());
         node0.setDependencies(Set.of(node0)); // Self-referencing
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> Dag.create(Set.of(node0)));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> ExecutionDag.create(Set.of(node0)));
         assertEquals("The graph contains a cycle", exception.getMessage());
     }
 
@@ -164,7 +164,7 @@ public class DagTest {
         NodeWithDependencies node2 = new NodeWithDependencies(2, Set.of());
         NodeWithDependencies node0 = new NodeWithDependencies(0, Set.of(node2));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> Dag.create(Set.of(node0, node2)));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> ExecutionDag.create(Set.of(node0, node2)));
         assertEquals("The graph contains a reference to a non-existing node", exception.getMessage());
     }
 
@@ -173,7 +173,7 @@ public class DagTest {
         NodeWithDependencies node0a = new NodeWithDependencies(0, Set.of());
         NodeWithDependencies node0b = new NodeWithDependencies(0, Set.of());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> Dag.create(Set.of(node0a, node0b)));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> ExecutionDag.create(Set.of(node0a, node0b)));
         assertEquals("The graph contains duplicate nodes", exception.getMessage());
     }
 
@@ -185,7 +185,7 @@ public class DagTest {
             nodes.add(new NodeWithDependencies(i, dependencies));
         }
 
-        Dag dag = Dag.create(nodes);
+        ExecutionDag dag = ExecutionDag.create(nodes);
         List<List<Integer>> adjacencyList = dag.getAdjacencyList();
 
         assertEquals(1000, adjacencyList.size());
@@ -205,7 +205,7 @@ public class DagTest {
         NodeWithDependencies node1 = new NodeWithDependencies(1, Set.of());
         NodeWithDependencies node0 = new NodeWithDependencies(0, Set.of(node1));
 
-        Dag dag = Dag.create(Set.of(node0, node1, node2, node3));
+        ExecutionDag dag = ExecutionDag.create(Set.of(node0, node1, node2, node3));
         List<List<Integer>> adjacencyList = dag.getAdjacencyList();
 
         assertEquals(4, adjacencyList.size());

@@ -1,6 +1,6 @@
 package com.microsoft.execution;
 
-import com.microsoft.model.Dag;
+import com.microsoft.model.ExecutionDag;
 import com.microsoft.parser.IDagParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +26,7 @@ public class DagExecutor implements IDagExecutor {
     @Override
     public CompletableFuture<DagResponse> processRequestAsync(DagRequest request) {
         // Parses request payload to a DAG Object
-        Dag dag = dagParser.parseDag(request.dagXml());
+        ExecutionDag dag = dagParser.parseDag(request.dagXml());
 
         // Submits the DAG for execution
         return CompletableFuture.supplyAsync(() -> { // TODO check thread pools
@@ -39,7 +39,7 @@ public class DagExecutor implements IDagExecutor {
         }, executorService);
     }
 
-    private DagResponse executeDag(Dag dag) throws InterruptedException {
+    private DagResponse executeDag(ExecutionDag dag) throws InterruptedException {
         List<List<Integer>> adjacencyList = dag.getAdjacencyList();
         Map<Integer, Integer> inDegree = dag.getInDegree();
         int dagSize = adjacencyList.size();

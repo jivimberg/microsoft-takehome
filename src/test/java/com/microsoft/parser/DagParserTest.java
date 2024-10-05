@@ -1,7 +1,6 @@
 package com.microsoft.parser;
 
-import com.microsoft.model.Dag;
-import org.junit.jupiter.api.Disabled;
+import com.microsoft.model.ExecutionDag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -33,7 +32,7 @@ public class DagParserTest {
             </DAG>
         """;
 
-        Dag dag = dagParser.parseDag(validDagXml);
+        ExecutionDag dag = dagParser.parseDag(validDagXml);
         List<List<Integer>> adjacencyList = dag.getAdjacencyList();
 
         assertEquals(3, adjacencyList.size());
@@ -114,7 +113,7 @@ public class DagParserTest {
             </DAG>
         """;
 
-        Dag dag = dagParser.parseDag(dagWithIslandsXml);
+        ExecutionDag dag = dagParser.parseDag(dagWithIslandsXml);
         List<List<Integer>> adjacencyList = dag.getAdjacencyList();
 
         assertEquals(4, adjacencyList.size());
@@ -133,7 +132,7 @@ public class DagParserTest {
             </DAG>
         """;
 
-        Dag dag = dagParser.parseDag(emptyDagXml);
+        ExecutionDag dag = dagParser.parseDag(emptyDagXml);
         List<List<Integer>> adjacencyList = dag.getAdjacencyList();
 
         assertTrue(adjacencyList.isEmpty());
@@ -151,7 +150,7 @@ public class DagParserTest {
             </DAG>
         """;
 
-        Dag dag = dagParser.parseDag(singleNodeXml);
+        ExecutionDag dag = dagParser.parseDag(singleNodeXml);
         List<List<Integer>> adjacencyList = dag.getAdjacencyList();
 
         assertEquals(1, adjacencyList.size());
@@ -231,7 +230,7 @@ public class DagParserTest {
 
         System.out.println(largeDagXml);
 
-        Dag dag = dagParser.parseDag(largeDagXml.toString());
+        ExecutionDag dag = dagParser.parseDag(largeDagXml.toString());
         List<List<Integer>> adjacencyList = dag.getAdjacencyList();
 
         assertEquals(1000, adjacencyList.size());
@@ -269,7 +268,7 @@ public class DagParserTest {
             </DAG>
         """;
 
-        Dag dag = dagParser.parseDag(nonOrderedNodesXml);
+        ExecutionDag dag = dagParser.parseDag(nonOrderedNodesXml);
         List<List<Integer>> adjacencyList = dag.getAdjacencyList();
 
         assertEquals(4, adjacencyList.size());

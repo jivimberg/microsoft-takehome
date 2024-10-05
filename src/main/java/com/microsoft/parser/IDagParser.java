@@ -1,6 +1,6 @@
 package com.microsoft.parser;
 
-import com.microsoft.model.Dag;
+import com.microsoft.model.ExecutionDag;
 
 public interface IDagParser {
 
@@ -10,5 +10,5 @@ public interface IDagParser {
      * @param dagXml The DAG XML string to be parsed
      * @return The response.
      */
-    Dag parseDag(String dagXml);
+    ExecutionDag parseDag(String dagXml);
 }

@@ -2,17 +2,17 @@ package com.microsoft.model;
 
 import java.util.*;
 
-public class Dag {
+public class ExecutionDag {
     private final List<List<Integer>> adjacencyList = new ArrayList<>();
     private final Map<Integer, IDagNode> nodeMap = new HashMap<>();
     private final Map<Integer, Integer> inDegree = new HashMap<>();
 
-    private Dag() {
+    private ExecutionDag() {
 
     }
 
-    public static Dag create(Set<? extends INodeWithDependencies> nodes) {
-        Dag dag = new Dag();
+    public static ExecutionDag create(Set<? extends INodeWithDependencies> nodes) {
+        ExecutionDag dag = new ExecutionDag();
 
         // Initialize adjacency list
         int nodesSize = nodes.size();
@@ -37,7 +37,7 @@ public class Dag {
                 if(targetId >= dag.adjacencyList.size()) { // Check that the reference is valid
                     throw new IllegalArgumentException("The graph contains a reference to a non-existing node");
                 }
-                dag.addEdge(targetId, node.getId());
+                dag.addEdge(targetId, node.getId()); // ⚠️ Edge direction is inverted
             }
         }
 
@@ -72,7 +72,6 @@ public class Dag {
         return inDegree;
     }
 
-    // TODO move cycle detection to interface?
     private boolean detectCycle() {
         boolean[] visited = new boolean[nodeMap.size()];
         boolean[] recStack = new boolean[nodeMap.size()];

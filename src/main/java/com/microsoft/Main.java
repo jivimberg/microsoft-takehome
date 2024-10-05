@@ -1,6 +1,8 @@
 package com.microsoft;
 
 import com.microsoft.execution.*;
+import com.microsoft.execution.retry.NoRetryStrategy;
+import com.microsoft.execution.retry.TimedRetryStrategy;
 import com.microsoft.parser.DagParser;
 import com.microsoft.parser.IDagParser;
 
@@ -9,7 +11,7 @@ import java.util.concurrent.ExecutionException;
 public class Main {
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         // Example of how to use the DAG executor.
-        final IDagNodeExecutor dagNodeExecutor = new DagNodeExecutor(4, 0);
+        final IDagNodeExecutor dagNodeExecutor = new DagNodeExecutor(4, 0, NoRetryStrategy.INSTANCE);
         final IDagParser dagParser = new DagParser();
         final IDagExecutor dagExecutor = new DagExecutor(dagParser, dagNodeExecutor);
 

@@ -1,13 +1,9 @@
 package com.microsoft.execution;
 
-import com.microsoft.model.Dag;
-import com.microsoft.model.IDagNode;
+import com.microsoft.execution.retry.*;
 import com.microsoft.parser.DagParser;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.HashSet;
 import java.util.Random;
@@ -15,9 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
@@ -54,7 +48,7 @@ public class EndToEndTest {
         """;
 
         // Configure the DagNodeExecutor with failure rate 0
-        DagNodeExecutor dagNodeExecutor = new DagNodeExecutor(4, 0.0f);
+        DagNodeExecutor dagNodeExecutor = new DagNodeExecutor(4, 0.0f, NoRetryStrategy.INSTANCE);
         DagParser DagParser = new DagParser();
         IDagExecutor dagExecutor = new DagExecutor(DagParser, dagNodeExecutor);
 
@@ -69,45 +63,63 @@ public class EndToEndTest {
 
     @RepeatedTest(50)
     public void testMultipleDAGsExecution() throws ExecutionException, InterruptedException {
-        testExecution(20, 10, 5, 4, 0.0f);
+        testExecution(20, 10, 5, 4, 0.0f, NoRetryStrategy.INSTANCE);
     }
 
     @RepeatedTest(50)
     public void testMultipleDAGsExecutionWithFailure() throws ExecutionException, InterruptedException {
-        testExecution(20, 10, 5, 4, 0.2f);
+        testExecution(20, 10, 5, 4, 0.2f, NoRetryStrategy.INSTANCE);
     }
 
     @RepeatedTest(50)
     public void testMultipleLargeDAGsExecution() throws ExecutionException, InterruptedException {
-        testExecution(20, 50, 2, 4, 0.0f);
+        testExecution(20, 50, 2, 4, 0.0f, NoRetryStrategy.INSTANCE);
     }
 
     @RepeatedTest(50)
     public void testManyDAGsAtTheSameTime() throws ExecutionException, InterruptedException {
-        testExecution(500, 10, 3, 4, 0.0f);
+        testExecution(500, 10, 3, 4, 0.0f, NoRetryStrategy.INSTANCE);
     }
 
     @RepeatedTest(50)
     public void testSingleEngine() throws ExecutionException, InterruptedException {
-        testExecution(20, 10, 5, 1, 0.0f);
+        testExecution(20, 10, 5, 1, 0.0f, NoRetryStrategy.INSTANCE);
     }
 
     @RepeatedTest(50)
     public void testSingleEngineWithFailures() throws ExecutionException, InterruptedException {
-        testExecution(20, 10, 5, 1, 0.5f);
+        testExecution(20, 10, 5, 1, 0.5f, NoRetryStrategy.INSTANCE);
+    }
+
+    @RepeatedTest(50)
+    public void testFailuresAndTimedRetryStrategy() throws ExecutionException, InterruptedException {
+        TimedRetryStrategy retryStrategy = new TimedRetryStrategy(3, 10);
+        testExecution(20, 10, 5, 4, 0.5f, retryStrategy);
+    }
+
+    @RepeatedTest(50)
+    public void testFailuresAndInfiniteRetryStrategy() throws ExecutionException, InterruptedException {
+        InfiteRetryStrategy retryStrategy = new InfiteRetryStrategy(10);
+        testExecution(20, 10, 5, 4, 0.9f, retryStrategy);
+    }
+
+    @RepeatedTest(50)
+    public void testFailuresAndExponentialBackOffStrategy() throws ExecutionException, InterruptedException {
+        ExponentialBackoffRetryStrategy retryStrategy = new ExponentialBackoffRetryStrategy(3, 10, 2);
+        testExecution(20, 10, 5, 4, 0.5f, retryStrategy);
     }
 
     @RepeatedTest(50)
     public void testEverythingFails() throws ExecutionException, InterruptedException {
-        testExecution(20, 10, 5, 1, 1.0f);
+        testExecution(20, 10, 5, 4, 1.0f, NoRetryStrategy.INSTANCE);
     }
 
     @RepeatedTest(50)
     public void testExecutionWithManyEngines() throws ExecutionException, InterruptedException {
-        testExecution(50, 20, 4, 50, 0.0f);
+        testExecution(50, 20, 4, 50, 0.0f, NoRetryStrategy.INSTANCE);
     }
 
-    public void testExecution(int numDags, int numNodes, int maxEdges, int numberOfEngines, float failureRate) throws ExecutionException, InterruptedException {
+    public void testExecution(int numDags, int numNodes, int maxEdges, int numberOfEngines, float failureRate, RetryStrategy retryStrategy) throws ExecutionException, InterruptedException {
         // Generate N random DAG XMLs
         DagParser dagParser = new DagParser();
         List<String> dagXmls = IntStream.range(0, numDags)
@@ -115,7 +127,7 @@ public class EndToEndTest {
                 .toList();
 
         // Configure the DagNodeExecutor with failure rate 0
-        DagNodeExecutor dagNodeExecutor = new DagNodeExecutor(numberOfEngines, failureRate);
+        DagNodeExecutor dagNodeExecutor = new DagNodeExecutor(numberOfEngines, failureRate, retryStrategy);
         IDagExecutor dagExecutor = new DagExecutor(dagParser, dagNodeExecutor);
 
         // Submit each DAG for execution
@@ -131,7 +143,7 @@ public class EndToEndTest {
             return true;
         });
 
-        if(failureRate == 0) {
+        if(failureRate == 0 || retryStrategy instanceof InfiteRetryStrategy) {
             // Ensure all DAGs have completed successfully
             for (CompletableFuture<DagResponse> future : futures) {
                 DagResponse response = future.get();
