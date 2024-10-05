@@ -66,6 +66,23 @@ public class DagParserTest {
     }
 
     @Test
+    public void testParseNodeWithoutDependenciesIsValid() {
+        String nodeWithoutDependenciesXml = """
+            <DAG>
+                <Nodes>
+                    <Node Id="0"/>
+                </Nodes>
+            </DAG>
+        """;
+
+        ExecutionDag dag = dagParser.parseDag(nodeWithoutDependenciesXml);
+
+        List<List<Integer>> adjacencyList = dag.getAdjacencyList();
+        assertEquals(1, adjacencyList.size());
+        assertTrue(adjacencyList.get(0).isEmpty());
+    }
+
+    @Test
     public void testParseDagWithCycle() {
         String dagWithCycleXml = """
             <DAG>
@@ -136,6 +153,17 @@ public class DagParserTest {
         List<List<Integer>> adjacencyList = dag.getAdjacencyList();
 
         assertTrue(adjacencyList.isEmpty());
+    }
+
+    @Test
+    public void testParseDagWithoutNodesElement() {
+        String dagWithoutNodesXml = """
+            <DAG>
+            </DAG>
+        """;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> dagParser.parseDag(dagWithoutNodesXml));
+        assertEquals("Failed to parse DAG XML", exception.getMessage());
     }
 
     @Test
@@ -213,7 +241,7 @@ public class DagParserTest {
         """;
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> dagParser.parseDag(duplicateNodeIdsXml));
-        assertEquals("The graph contains duplicate nodes", exception.getMessage());
+        assertEquals("The XML contains duplicate nodes", exception.getMessage());
     }
 
     @Test

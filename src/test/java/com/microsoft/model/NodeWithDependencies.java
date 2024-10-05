@@ -12,12 +12,12 @@ public class NodeWithDependencies implements INodeWithDependencies {
     }
 
     @Override
-    public Integer getId() {
+    public Integer id() {
         return id;
     }
 
     @Override
-    public Set<INodeWithDependencies> getDependencies() {
+    public Set<INodeWithDependencies> dependencies() {
         return dependencies;
     }
 

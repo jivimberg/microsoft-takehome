@@ -1,35 +1,35 @@
 package com.microsoft.parser;
 
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.microsoft.model.INodeWithDependencies;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
-public class DagXml {
-    @JacksonXmlElementWrapper(localName = "Nodes")
-    @JacksonXmlProperty(localName = "Node")
-    private Set<Node> nodes;
-
-    public Set<Node> getNodes() {
-        return nodes;
+public record DagXml(List<Node> nodes) {
+    @JsonCreator
+    public DagXml(@JsonProperty(required = true, value = "Nodes") List<Node> nodes) {
+        this.nodes = nodes;
     }
 
-    public static class Node implements INodeWithDependencies {
-        @JacksonXmlProperty(isAttribute = true, localName = "Id")
-        private Integer id;
-
-        @JacksonXmlElementWrapper(localName = "dependencies")
-        @JacksonXmlProperty(localName = "Node")
-        private Set<Node> dependencies;
-
-        public Integer getId() {
-            return id;
+    public record Node(Integer id, Set<Node> dependencies) implements INodeWithDependencies {
+        @JsonCreator
+        public Node(@JsonProperty(required = true, value =  "Id") Integer id,
+                    @JsonProperty(value = "dependencies") Set<Node> dependencies
+        ) {
+            this.id = id;
+            this.dependencies = dependencies != null ? dependencies : Collections.emptySet();
+            validateDependencies();
         }
 
-        public Set<Node> getDependencies() {
-            return dependencies;
+        private void validateDependencies() {
+            for (Node dependency : dependencies) {
+                if (!dependency.dependencies().isEmpty()) {
+                    throw new IllegalArgumentException("Dependencies of node " + id + " should not have their own dependencies.");
+                }
+            }
         }
-
     }
 }

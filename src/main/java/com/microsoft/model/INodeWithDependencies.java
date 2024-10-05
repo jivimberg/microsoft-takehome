@@ -4,7 +4,7 @@ import java.util.Set;
 
 public interface INodeWithDependencies {
 
-    Integer getId();
+    Integer id();
 
-    Set<? extends INodeWithDependencies> getDependencies();
+    Set<? extends INodeWithDependencies> dependencies();
 }

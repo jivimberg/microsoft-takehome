@@ -26,18 +26,18 @@ public class ExecutionDag {
         }
 
         for (INodeWithDependencies node : nodes) {
-            if (dag.nodeMap.get(node.getId()) != null) {
+            if (dag.nodeMap.get(node.id()) != null) {
                 throw new IllegalArgumentException("The graph contains duplicate nodes");
             }
 
-            dag.addNode(new DagNode(node.getId()));
+            dag.addNode(new DagNode(node.id()));
 
-            for (INodeWithDependencies dependency : node.getDependencies()) {
-                int targetId = dependency.getId();
+            for (INodeWithDependencies dependency : node.dependencies()) {
+                int targetId = dependency.id();
                 if(targetId >= dag.adjacencyList.size()) { // Check that the reference is valid
                     throw new IllegalArgumentException("The graph contains a reference to a non-existing node");
                 }
-                dag.addEdge(targetId, node.getId()); // ⚠️ Edge direction is inverted
+                dag.addEdge(targetId, node.id()); // ⚠️ Edge direction is inverted
             }
         }
 
