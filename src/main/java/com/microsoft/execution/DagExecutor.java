@@ -25,12 +25,9 @@ public class DagExecutor implements IDagExecutor {
 
     @Override
     public CompletableFuture<DagResponse> processRequestAsync(DagRequest request) {
-        // Parses request payload to a DAG Object
-        ExecutionDag dag = dagParser.parseDag(request.dagXml());
-
-        // Submits the DAG for execution
         return CompletableFuture.supplyAsync(() -> {
             try {
+                ExecutionDag dag = dagParser.parseDag(request.dagXml());
                 return executeDag(dag);
             } catch (InterruptedException ex) {
                 logger.error("Dag execution failed", ex);
