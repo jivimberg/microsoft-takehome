@@ -19,6 +19,19 @@ dependencies {
     testImplementation ("org.awaitility:awaitility-kotlin:4.2.2")
 }
 
+tasks.compileJava {
+    options.compilerArgs.add("--enable-preview")
+}
+
+tasks.compileTestJava {
+    options.compilerArgs.add("--enable-preview")
+}
+
 tasks.test {
     useJUnitPlatform()
+    jvmArgs("--enable-preview")
+}
+
+tasks.withType<JavaExec>().configureEach {
+    jvmArgs("--enable-preview")
 }

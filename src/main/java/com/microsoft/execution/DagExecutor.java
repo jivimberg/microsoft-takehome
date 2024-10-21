@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@SuppressWarnings("preview")
 public class DagExecutor implements IDagExecutor {
 
     private static final Logger logger = LoggerFactory.getLogger(DagExecutor.class);
@@ -50,55 +51,52 @@ public class DagExecutor implements IDagExecutor {
         }
 
         ConcurrentHashMap<Integer, Integer> concurrentInDegree = new ConcurrentHashMap<>(inDegree);
-        AtomicBoolean hasFailed = new AtomicBoolean(false);
-        Semaphore semaphore = new Semaphore(0);
         int nodesScheduledForExecution = 0;
 
-        while (nodesScheduledForExecution < dagSize) {
-            logger.info("Blocking execution for DAG {}", dag.hashCode());
-            int node = q.take();
-            logger.info("Taking item for DAG {}", dag.hashCode());
+        try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
+            while (nodesScheduledForExecution < dagSize) {
+                logger.info("Blocking execution for DAG {}", dag.hashCode());
+                int node = q.take();
+                logger.info("Taking item for DAG {}", dag.hashCode());
 
-            if(node < 0) {
-                // Poison pill received, stop executing
-                break;
+                if (node < 0) {
+                    // Poison pill received, stop executing
+                    break;
+                }
+
+                scope.fork(() -> {
+                    logger.info("Executing node {}", node);
+
+                    // Execute the node
+                    dagNodeExecutor.executeAsync(dag.getNode(node))
+                            .thenAccept(result -> {
+                                if (result < 0) {
+                                    q.add(-1); // send poison pill to unblock thread waiting on the queue
+                                    throw new RuntimeException("Node execution failed");
+                                }
+
+                                // Decrease inDegree of neighbors
+                                for (int nodeId : adjacencyList.get(node)) {
+                                    int newInDegree = concurrentInDegree.merge(nodeId, -1, Integer::sum);
+
+                                    if (newInDegree == 0) { // If inDegree becomes 0, push it to the queue
+                                        q.add(nodeId);
+                                    } else if (newInDegree < 0) { // Should never happen if the DAG is correct
+                                        q.add(-1); // send poison pill to unblock thread waiting on the queue
+                                        throw new IllegalStateException("Negative inDegree detected");
+                                    }
+                                }
+                            })
+                            .join(); // Wait for the task to complete successfully or throw exception
+
+                    return null;
+                });
+
+                nodesScheduledForExecution++;
             }
 
-            // Execute the node
-            dagNodeExecutor.executeAsync(dag.getNode(node))
-                    .thenAccept(result -> {
-                        if (result < 0) {
-                            throw new RuntimeException("Node execution failed");
-                        }
-
-                        semaphore.release();
-
-                        // Decrease inDegree of neighbors
-                        for (int nodeId : adjacencyList.get(node)) {
-                            int newInDegree = concurrentInDegree.merge(nodeId, -1, Integer::sum);
-
-                            if (newInDegree == 0) { // If inDegree becomes 0, push it to the queue
-                                q.add(nodeId);
-                            } else if (newInDegree < 0) { // Should never happen if the DAG is correct
-                                throw new IllegalStateException("Negative inDegree detected");
-                            }
-                        }
-                    })
-                    .exceptionally(
-                            ex -> {
-                                logger.error("Node execution failed", ex);
-                                hasFailed.set(true);
-                                semaphore.release(dagSize); // Release all the permits to unblock the DAG execution.
-                                q.add(-1); // send poison pill to unblock thread waiting on the queue
-                                return null;
-                            }
-                    );
-
-            nodesScheduledForExecution++;
+            scope.join(); // Wait for all tasks to complete or any to fail
+            return new DagResponse(scope.exception().isPresent());
         }
-
-        semaphore.acquire(dagSize); // Wait for all executions to complete or for one to fail.
-
-        return new DagResponse(hasFailed.get());
     }
 }
