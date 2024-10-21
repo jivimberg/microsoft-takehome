@@ -39,6 +39,7 @@ public class DagNodeExecutor implements IDagNodeExecutor {
                     return 0; // success
                 }, executorService)
                 .exceptionallyCompose(ex -> {
+                    //noinspection StringConcatenationArgumentToLogCall
                     logger.error("Error executing node: " + unitOfExecution.id(), ex);
 
                     if (retryStrategy.shouldRetry(attempt)) {
@@ -64,6 +65,7 @@ public class DagNodeExecutor implements IDagNodeExecutor {
             int retriesRemaining,
             long delayInMillis
     ) {
+        // This conversion of Runnable to CompletableFuture is required because the executor returns a ScheduledFuture instead of CompletableFuture.
         CompletableFuture<Integer> retryFuture = new CompletableFuture<>();
         Runnable retry = () -> executeWithRetry(unitOfExecution, retriesRemaining).whenComplete((result, ex) -> {
             if (ex != null) {
