@@ -33,11 +33,11 @@ public class ExecutionDag {
             dag.addNode(new DagNode(node.id()));
 
             for (INodeWithDependencies dependency : node.dependencies()) {
-                int targetId = dependency.id();
-                if(targetId >= dag.adjacencyList.size()) { // Check that the reference is valid
+                int dependencyId = dependency.id();
+                if(dependencyId >= dag.adjacencyList.size()) { // Check that the reference is valid
                     throw new IllegalArgumentException("The graph contains a reference to a non-existing node");
                 }
-                dag.addEdge(targetId, node.id()); // ⚠️ Edge direction is inverted
+                dag.addEdge(dependencyId, node.id()); // ⚠️ Edge direction is inverted
             }
         }
 

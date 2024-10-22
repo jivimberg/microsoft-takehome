@@ -4,6 +4,8 @@ import com.microsoft.execution.retry.NoRetryStrategy;
 import com.microsoft.model.DagNode;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -48,5 +50,27 @@ public class DagNodeExecutorTest {
         int result = future.get();
 
         assertEquals(-1, result, "Expected execution to fail with result -1");
+    }
+
+    @Test
+    public void testPriorityAndDelayExecution() throws InterruptedException, ExecutionException {
+        DagNodeExecutor dagNodeExecutor = new DagNodeExecutor(4, 0.0f, NoRetryStrategy.INSTANCE);
+
+        List<DagNode> nodes = new ArrayList<>();
+        for(int i = 0; i < 50; i++) {
+            nodes.add(new DagNode(i, 100 - i));
+        }
+
+        for(int i = 50; i < 100; i++) {
+            nodes.add(new DagNode(i, 100 - i));
+        }
+
+        List<CompletableFuture<Integer>> futures = nodes.stream()
+                .map(dagNodeExecutor::executeAsync)
+                .toList();
+
+        // wait for all futures to complete
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+        allFutures.join();
     }
 }
