@@ -2,6 +2,7 @@ package com.microsoft.execution;
 
 import com.microsoft.execution.retry.*;
 import com.microsoft.model.IDagNode;
+import com.microsoft.model.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +15,7 @@ public class DagNodeExecutor implements IDagNodeExecutor {
     private final ScheduledExecutorService executorService;
     private final float failureRate;
     private final RetryStrategy retryStrategy;
+    private final ResourceManager resourceManager;
 
     public DagNodeExecutor(int numberOfEngines, float failureRate, RetryStrategy retryStrategy) {
         if (failureRate < 0 || failureRate > 1) {
@@ -22,6 +24,7 @@ public class DagNodeExecutor implements IDagNodeExecutor {
         this.executorService = Executors.newScheduledThreadPool(numberOfEngines);
         this.failureRate = failureRate;
         this.retryStrategy = retryStrategy;
+        this.resourceManager = new ResourceManager();
     }
 
     @Override
@@ -31,14 +34,29 @@ public class DagNodeExecutor implements IDagNodeExecutor {
 
     private CompletableFuture<Integer> executeWithRetry(IDagNode unitOfExecution, int attempt) {
         return CompletableFuture.supplyAsync(() -> {
-                    if (Math.random() < failureRate) {
-                        throw new RuntimeException("Simulated failure for node: " + unitOfExecution.id());
-                    }
+                    try {
+                        if (!resourceManager.acquireResources(unitOfExecution.resources())) {
+                            throw new ResourcesNotAvailableException("Resources not available for node: " + unitOfExecution.id());
+                        }
 
-                    unitOfExecution.execute();
-                    return 0; // success
+                        if (Math.random() < failureRate) {
+                            throw new RuntimeException("Simulated failure for node: " + unitOfExecution.id());
+                        }
+
+                        unitOfExecution.execute();
+
+                        return 0; // success
+                    } finally {
+                        resourceManager.releaseResources(unitOfExecution.resources());
+                    }
                 }, executorService)
                 .exceptionallyCompose(ex -> {
+                    if (ex instanceof ResourcesNotAvailableException) {
+                        // Always retry if the resources were not available
+                        logger.info("Resources not available for node: {}. Retrying after 100ms", unitOfExecution.id());
+                        return scheduleRetry(unitOfExecution, attempt + 1, 100);
+                    }
+
                     //noinspection StringConcatenationArgumentToLogCall
                     logger.error("Error executing node: " + unitOfExecution.id(), ex);
 
