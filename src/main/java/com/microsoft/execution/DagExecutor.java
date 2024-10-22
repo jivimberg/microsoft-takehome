@@ -1,5 +1,6 @@
 package com.microsoft.execution;
 
+import com.microsoft.model.DagNode;
 import com.microsoft.model.ExecutionDag;
 import com.microsoft.parser.IDagParser;
 import org.slf4j.Logger;
@@ -17,10 +18,14 @@ public class DagExecutor implements IDagExecutor {
     private final IDagParser dagParser;
     private final IDagNodeExecutor dagNodeExecutor;
     private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+    // TODO move this out to global context
+    BlockingQueue<DagNode> schedulerQueue = new LinkedBlockingQueue<>();
+    private final Scheduler scheduler;
 
-    public DagExecutor(IDagParser dagParser, IDagNodeExecutor dagNodeExecutor) {
+    public DagExecutor(IDagParser dagParser, IDagNodeExecutor dagNodeExecutor, Scheduler scheduler) {
         this.dagParser = dagParser;
         this.dagNodeExecutor = dagNodeExecutor;
+        this.scheduler = new Scheduler(schedulerQueue, dagNodeExecutor);
     }
 
     @Override
@@ -49,10 +54,17 @@ public class DagExecutor implements IDagExecutor {
             }
         }
 
-        ConcurrentHashMap<Integer, Integer> concurrentInDegree = new ConcurrentHashMap<>(inDegree);
+        // ConcurrentHashMap<Integer, Integer> concurrentInDegree = new ConcurrentHashMap<>(inDegree);
         AtomicBoolean hasFailed = new AtomicBoolean(false);
         Semaphore semaphore = new Semaphore(0);
         int nodesScheduledForExecution = 0;
+
+        while() {
+            // Iterate over DagNodes
+            // Check if they are ready to be executed
+            // If they are send them to the scheduler for execution.
+        }
+
 
         while (nodesScheduledForExecution < dagSize) {
             logger.info("Blocking execution for DAG {}", dag.hashCode());
@@ -93,6 +105,8 @@ public class DagExecutor implements IDagExecutor {
                                 return null;
                             }
                     );
+
+            // IF node goes to 0 for in-degree then schedule.
 
             nodesScheduledForExecution++;
         }
