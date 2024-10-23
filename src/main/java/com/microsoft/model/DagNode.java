@@ -28,6 +28,11 @@ public final class DagNode implements IDagNode {
         notifyDependents();
     }
 
+    @Override
+    public Integer cpuCost() {
+        return 0;
+    }
+
     public void notifyDependents() {
         for (DagNode dependent : dependents) {
             dependent.dependencyCompleted();

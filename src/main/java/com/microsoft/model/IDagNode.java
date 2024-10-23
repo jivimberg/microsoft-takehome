@@ -1,8 +1,12 @@
 package com.microsoft.model;
 
-public interface  IDagNode {
+import com.microsoft.execution.IWork;
+
+public interface  IDagNode extends IWork {
 
     Integer id();
 
     void execute();
+
+    Integer cpuCost();
 }
